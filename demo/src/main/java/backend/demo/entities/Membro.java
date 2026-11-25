@@ -1,29 +1,78 @@
 package backend.demo.entities;
+
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
+import java.util.List;
 
-@Data
 @Entity
 @Table(name = "membros")
-public class Membro {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Membro implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 150)
     private String nome;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String matricula;
+    @Column(nullable = false)
+    private String senha;
 
-    @Column(nullable = false, length = 50)
-    private String papel; // Ex: COORDENADOR, DOCENTE, DISCENTE
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Perfil perfil;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean ativo = true;
+
+    // --- Métodos obrigatórios do Spring Security (UserDetails) ---
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.perfil.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return this.senha;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return Boolean.TRUE.equals(this.ativo);
+    }
 }
