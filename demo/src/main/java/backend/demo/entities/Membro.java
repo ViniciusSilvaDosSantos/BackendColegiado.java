@@ -1,10 +1,8 @@
 package backend.demo.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,50 +10,51 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@Data
 @Entity
-@Builder
+@Table(name = "membros")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "membros")
+@Builder
 public class Membro implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 150)
     private String nome;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String senha;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String matricula;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 30)
     private Perfil perfil;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean ativo = true;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + perfil.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.perfil.name()));
     }
 
     @Override
+    @JsonIgnore
     public String getPassword() {
-        return senha;
+        return this.senha;
     }
 
     @Override
     public String getUsername() {
-        return email;
+        return this.email;
     }
 
     @Override
@@ -75,6 +74,6 @@ public class Membro implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return ativo;
+        return Boolean.TRUE.equals(this.ativo);
     }
 }

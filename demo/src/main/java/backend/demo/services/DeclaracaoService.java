@@ -1,6 +1,6 @@
 package backend.demo.services;
 
-import backend.demo.dto.DeclaracaoPublicaDTO;
+import backend.demo.dtos.DeclaracaoPublicaDTO;
 import backend.demo.entities.DeclaracaoSemestral;
 import backend.demo.entities.Membro;
 import backend.demo.repositories.DeclaracaoSemestralRepository;

@@ -1,4 +1,4 @@
-package backend.demo.dto;
+package backend.demo.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

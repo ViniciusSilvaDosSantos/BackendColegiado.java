@@ -51,9 +51,14 @@ public class SecurityConfig {
 
                         // Rotas exclusivas do Coordenador
                         .requestMatchers("/api/membros/**").hasRole("COORDENADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/reunioes").hasRole("COORDENADOR")
                         .requestMatchers(HttpMethod.POST, "/api/reunioes/*/pautas").hasRole("COORDENADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/reunioes/*/participacoes").hasRole("COORDENADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/reunioes/*/finalizar").hasRole("COORDENADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/declaracoes").hasRole("COORDENADOR")
 
-                        // Rotas de consulta liberadas para Coordenador e Membro
+                        // Rotas liberadas para Coordenador e Membro
+                        .requestMatchers(HttpMethod.POST, "/api/atas/*/assinar").hasAnyRole("COORDENADOR", "MEMBRO")
                         .requestMatchers(HttpMethod.GET, "/api/reunioes/**", "/api/atas/**").hasAnyRole("COORDENADOR", "MEMBRO")
 
                         // Qualquer outra rota exige estar autenticado

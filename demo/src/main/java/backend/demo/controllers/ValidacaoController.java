@@ -1,6 +1,6 @@
 package backend.demo.controllers;
 
-import backend.demo.dto.DeclaracaoPublicaDTO;
+import backend.demo.dtos.DeclaracaoPublicaDTO;
 import backend.demo.services.DeclaracaoService;
 import org.springframework.web.bind.annotation.*;
 

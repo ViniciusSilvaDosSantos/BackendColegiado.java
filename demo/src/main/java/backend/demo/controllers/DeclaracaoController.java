@@ -1,6 +1,6 @@
 package backend.demo.controllers;
 
-import backend.demo.dto.EmitirDeclaracaoDTO;
+import backend.demo.dtos.EmitirDeclaracaoDTO;
 import backend.demo.entities.DeclaracaoSemestral;
 import backend.demo.services.DeclaracaoService;
 import jakarta.validation.Valid;
