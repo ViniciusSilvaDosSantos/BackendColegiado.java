@@ -1,7 +1,10 @@
 package backend.demo.entities;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,51 +12,50 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+@Data
 @Entity
-@Table(name = "membros")
-@Getter
-@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Table(name = "membros")
 public class Membro implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false)
     private String senha;
 
+    @Column(nullable = false, unique = true, length = 50)
+    private String matricula;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 50)
     private Perfil perfil;
 
     @Column(nullable = false)
-    @Builder.Default
     private Boolean ativo = true;
-
-    // --- Métodos obrigatórios do Spring Security (UserDetails) ---
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + this.perfil.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + perfil.name()));
     }
 
     @Override
     public String getPassword() {
-        return this.senha;
+        return senha;
     }
 
     @Override
     public String getUsername() {
-        return this.email;
+        return email;
     }
 
     @Override
@@ -73,6 +75,6 @@ public class Membro implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return Boolean.TRUE.equals(this.ativo);
+        return ativo;
     }
 }
