@@ -8,11 +8,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class DemoApplication {
 
     public static void main(String[] args) {
-        // Ensinando ao Java que o arquivo está dentro da pasta "demo"
-        Dotenv dotenv = Dotenv.configure().directory("./demo").ignoreIfMissing().load();
-
-        // Passa as variáveis para o sistema
-        dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+        // Procura o .env na pasta onde a app roda (a pasta demo/ no IntelliJ e no ./mvnw)
+        // e não quebra se o arquivo não existir (variáveis do sistema continuam valendo).
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
 
         SpringApplication.run(DemoApplication.class, args);
     }
