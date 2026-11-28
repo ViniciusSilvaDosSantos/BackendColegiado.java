@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface DeclaracaoSemestralRepository extends JpaRepository<DeclaracaoSemestral, Long> {
     Optional<DeclaracaoSemestral> findByCodigoAutenticacao(String codigoAutenticacao);
     boolean existsByMembroIdAndSemestre(Long membroId, String semestre);
+    Optional<DeclaracaoSemestral> findFirstByMembroIdOrderByDataEmissaoDesc(Long membroId);
 }

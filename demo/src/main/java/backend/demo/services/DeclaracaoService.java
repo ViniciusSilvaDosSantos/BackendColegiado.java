@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -35,17 +37,17 @@ public class DeclaracaoService {
         LocalDateTime[] periodo = periodoDoSemestre(semestre);
 
         Membro membro = membroRepository.findById(membroId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membro não encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membro não encontrado"));
 
         if (declaracaoRepository.existsByMembroIdAndSemestre(membroId, semestre)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Declaração deste semestre já foi emitida");
+                    "Declaração deste semestre já foi emitida");
         }
 
         long presencas = participacaoRepository.contarPresencas(membroId, periodo[0], periodo[1]);
         if (presencas == 0) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                "Nenhuma presença registrada no semestre");
+                    "Nenhuma presença registrada no semestre");
         }
 
         DeclaracaoSemestral d = new DeclaracaoSemestral();
@@ -60,9 +62,28 @@ public class DeclaracaoService {
     @Transactional(readOnly = true)
     public DeclaracaoPublicaDTO validar(String codigo) {
         DeclaracaoSemestral d = declaracaoRepository.findByCodigoAutenticacao(codigo)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento não encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento não encontrado"));
         return new DeclaracaoPublicaDTO(d.getMembro().getNome(), d.getSemestre(),
-            d.getQuantidadeReunioesParticipadas(), d.getCargaHorariaTotal(), d.getDataEmissao());
+                d.getQuantidadeReunioesParticipadas(), d.getCargaHorariaTotal(), d.getDataEmissao());
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarUltimaDoMembro(Long membroId) {
+        DeclaracaoSemestral d = declaracaoRepository
+                .findFirstByMembroIdOrderByDataEmissaoDesc(membroId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Nenhuma declaração foi emitida para você pela coordenação ainda."
+                ));
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("nomeMembro", d.getMembro().getNome());
+        response.put("semestre", d.getSemestre());
+        response.put("quantidadeReunioes", d.getQuantidadeReunioesParticipadas());
+        response.put("cargaHorariaTotal", d.getCargaHorariaTotal());
+        response.put("codigoAutenticacao", d.getCodigoAutenticacao());
+        response.put("dataEmissao", d.getDataEmissao());
+        return response;
     }
 
     private LocalDateTime[] periodoDoSemestre(String semestre) {
@@ -73,7 +94,7 @@ public class DeclaracaoService {
         boolean primeiro = semestre.endsWith(".1");
         LocalDateTime inicio = LocalDateTime.of(ano, primeiro ? 1 : 7, 1, 0, 0);
         LocalDateTime fim = primeiro ? LocalDateTime.of(ano, 7, 1, 0, 0)
-                                     : LocalDateTime.of(ano + 1, 1, 1, 0, 0);
+                : LocalDateTime.of(ano + 1, 1, 1, 0, 0);
         return new LocalDateTime[]{inicio, fim};
     }
 }

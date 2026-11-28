@@ -45,9 +45,10 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Rotas públicas (Login e Portal Público de Validação)
+                        // Rotas públicas
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/validar/**").permitAll()
+                        .requestMatchers("/error").permitAll()
 
                         // Rotas exclusivas do Coordenador
                         .requestMatchers("/api/membros/**").hasRole("COORDENADOR")
@@ -59,9 +60,10 @@ public class SecurityConfig {
 
                         // Rotas liberadas para Coordenador e Membro
                         .requestMatchers(HttpMethod.POST, "/api/atas/*/assinar").hasAnyRole("COORDENADOR", "MEMBRO")
+                        .requestMatchers(HttpMethod.GET, "/api/declaracoes/minha").hasAnyRole("COORDENADOR", "MEMBRO")
                         .requestMatchers(HttpMethod.GET, "/api/reunioes/**", "/api/atas/**").hasAnyRole("COORDENADOR", "MEMBRO")
 
-                        // Qualquer outra rota exige estar autenticado
+                        // Qualquer outra rota exige autenticação
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

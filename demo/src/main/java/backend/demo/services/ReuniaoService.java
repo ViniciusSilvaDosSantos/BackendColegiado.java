@@ -1,57 +1,85 @@
 package backend.demo.services;
 
+import backend.demo.dtos.*;
+import backend.demo.entities.Membro;
 import backend.demo.entities.Participacao;
 import backend.demo.entities.Pauta;
 import backend.demo.entities.Reuniao;
+import backend.demo.repositories.MembroRepository;
 import backend.demo.repositories.ParticipacaoRepository;
 import backend.demo.repositories.PautaRepository;
 import backend.demo.repositories.ReuniaoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ReuniaoService {
 
-    @Autowired
-    private ReuniaoRepository reuniaoRepository;
+    private final ReuniaoRepository reuniaoRepository;
+    private final PautaRepository pautaRepository;
+    private final ParticipacaoRepository participacaoRepository;
+    private final MembroRepository membroRepository;
 
-    @Autowired
-    private PautaRepository pautaRepository;
+    @Transactional
+    public ReuniaoResponseDTO criarReuniao(ReuniaoRequestDTO dto) {
+        Reuniao reuniao = new Reuniao();
+        reuniao.setDataHora(dto.dataHora());
+        reuniao.setLocal(dto.local().trim());
+        reuniao.setStatus("AGENDADA");
 
-    @Autowired
-    private ParticipacaoRepository participacaoRepository;
-
-    // 1. Cria uma nova reunião
-    public Reuniao criarReuniao(Reuniao reuniao) {
-        return reuniaoRepository.save(reuniao);
+        Reuniao salva = reuniaoRepository.save(reuniao);
+        return ReuniaoResponseDTO.fromEntity(salva);
     }
 
-    // 2. Adiciona uma pauta a uma reunião existente
-    public Pauta adicionarPauta(Long reuniaoId, Pauta pauta) {
-        Reuniao reuniao = reuniaoRepository.findById(reuniaoId)
-                .orElseThrow(() -> new RuntimeException("Reunião não encontrada!"));
+    @Transactional
+    public PautaResponseDTO adicionarPauta(Long reuniaoId, PautaRequestDTO dto) {
+        Reuniao reuniao = buscarReuniaoOuFalhar(reuniaoId);
+        validarReuniaoAberta(reuniao);
 
+        Pauta pauta = new Pauta();
         pauta.setReuniao(reuniao);
-        return pautaRepository.save(pauta);
+        pauta.setTitulo(dto.titulo().trim());
+        pauta.setDescricao(dto.descricao());
+        pauta.setOrdemApresentacao(dto.ordemApresentacao());
+        pauta.setDeliberacao(dto.deliberacao());
+
+        Pauta salva = pautaRepository.save(pauta);
+        return PautaResponseDTO.fromEntity(salva);
     }
 
-    // 3. Adiciona uma participação (presença) a uma reunião
-    public Participacao adicionarParticipacao(Long reuniaoId, Participacao participacao) {
-        Reuniao reuniao = reuniaoRepository.findById(reuniaoId)
-                .orElseThrow(() -> new RuntimeException("Reunião não encontrada!"));
+    @Transactional
+    public ParticipacaoResponseDTO adicionarParticipacao(Long reuniaoId, ParticipacaoRequestDTO dto) {
+        Reuniao reuniao = buscarReuniaoOuFalhar(reuniaoId);
+        validarReuniaoAberta(reuniao);
 
+        if (participacaoRepository.findByReuniaoIdAndMembroId(reuniaoId, dto.membroId()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este membro já está registrado nesta reunião!");
+        }
+
+        Membro membro = membroRepository.findById(dto.membroId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Membro não encontrado!"));
+
+        Participacao participacao = new Participacao();
         participacao.setReuniao(reuniao);
-        return participacaoRepository.save(participacao);
+        participacao.setMembro(membro);
+        participacao.setStatusPresenca(dto.statusPresenca().trim().toUpperCase());
+
+        Participacao salva = participacaoRepository.save(participacao);
+        return ParticipacaoResponseDTO.fromEntity(salva);
     }
 
-    // 4. Método principal que finaliza a reunião e constrói a ata
-    public Reuniao finalizarReuniao(Long reuniaoId) {
-        Reuniao reuniao = reuniaoRepository.findById(reuniaoId)
-                .orElseThrow(() -> new RuntimeException("Reunião não encontrada!"));
+    @Transactional
+    public ReuniaoResponseDTO finalizarReuniao(Long reuniaoId) {
+        Reuniao reuniao = buscarReuniaoOuFalhar(reuniaoId);
+        validarReuniaoAberta(reuniao);
 
         reuniao.setStatus("FINALIZADA");
 
@@ -63,10 +91,54 @@ public class ReuniaoService {
         reuniao.setAtaConteudo(ataTexto);
         reuniao.setDataGeracaoAta(LocalDateTime.now());
 
-        return reuniaoRepository.save(reuniao);
+        Reuniao finalizada = reuniaoRepository.save(reuniao);
+        return ReuniaoResponseDTO.fromEntity(finalizada);
     }
 
-    // Método auxiliar (privado) de formatação de texto
+    @Transactional(readOnly = true)
+    public List<ReuniaoResponseDTO> listarTodasReunioes() {
+        return reuniaoRepository.findAll()
+                .stream()
+                .map(ReuniaoResponseDTO::fromEntity)
+                .toList();
+    }
+    @Transactional(readOnly = true)
+    public ReuniaoResponseDTO buscarPorId(Long reuniaoId) {
+        return ReuniaoResponseDTO.fromEntity(buscarReuniaoOuFalhar(reuniaoId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PautaResponseDTO> listarPautas(Long reuniaoId) {
+        buscarReuniaoOuFalhar(reuniaoId);
+        return pautaRepository.findByReuniaoIdOrderByOrdemApresentacaoAsc(reuniaoId)
+                .stream()
+                .map(PautaResponseDTO::fromEntity)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ParticipacaoResponseDTO> listarParticipacoes(Long reuniaoId) {
+        buscarReuniaoOuFalhar(reuniaoId);
+        return participacaoRepository.findByReuniaoId(reuniaoId)
+                .stream()
+                .map(ParticipacaoResponseDTO::fromEntity)
+                .toList();
+    }
+
+    private Reuniao buscarReuniaoOuFalhar(Long reuniaoId) {
+        return reuniaoRepository.findById(reuniaoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reunião não encontrada!"));
+    }
+
+    private void validarReuniaoAberta(Reuniao reuniao) {
+        if ("FINALIZADA".equalsIgnoreCase(reuniao.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Esta reunião já foi finalizada e não pode mais ser alterada."
+            );
+        }
+    }
+
     private String gerarTextoDaAta(Reuniao reuniao, List<Pauta> pautas, List<Participacao> participacoes) {
         StringBuilder sb = new StringBuilder();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -93,9 +165,5 @@ public class ReuniaoService {
         sb.append("Reunião encerrada e ata gerada automaticamente pelo sistema.");
 
         return sb.toString();
-    }
-    // 5. Lista todas as reuniões cadastradas
-    public List<Reuniao> listarTodasReunioes() {
-        return reuniaoRepository.findAll();
     }
 }

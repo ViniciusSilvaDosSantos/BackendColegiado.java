@@ -1,10 +1,10 @@
 package backend.demo.controllers;
 
-import backend.demo.entities.Participacao;
-import backend.demo.entities.Pauta;
-import backend.demo.entities.Reuniao;
+import backend.demo.dtos.*;
 import backend.demo.services.ReuniaoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,46 +12,53 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reunioes")
+@RequiredArgsConstructor
 public class ReuniaoController {
 
-    @Autowired
-    private ReuniaoService reuniaoService;
+    private final ReuniaoService reuniaoService;
 
-    // 1. Endpoint para criar uma Reunião (Usado no Passo 1 do Postman)
     @PostMapping
-    public ResponseEntity<Reuniao> criarReuniao(@RequestBody Reuniao reuniao) {
-        Reuniao novaReuniao = reuniaoService.criarReuniao(reuniao);
-        return ResponseEntity.ok(novaReuniao);
+    public ResponseEntity<ReuniaoResponseDTO> criarReuniao(@Valid @RequestBody ReuniaoRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reuniaoService.criarReuniao(dto));
     }
 
-    // 2. Endpoint para adicionar Pauta na Reunião (Usado no Passo 2 do Postman)
     @PostMapping("/{id}/pautas")
-    public ResponseEntity<Pauta> adicionarPauta(@PathVariable Long id, @RequestBody Pauta pauta) {
-        Pauta novaPauta = reuniaoService.adicionarPauta(id, pauta);
-        return ResponseEntity.ok(novaPauta);
+    public ResponseEntity<PautaResponseDTO> adicionarPauta(
+            @PathVariable Long id,
+            @Valid @RequestBody PautaRequestDTO dto
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reuniaoService.adicionarPauta(id, dto));
     }
 
-    // 3. Endpoint para adicionar Participação na Reunião (Usado no Passo 3 do Postman)
     @PostMapping("/{id}/participacoes")
-    public ResponseEntity<Participacao> adicionarParticipacao(@PathVariable Long id, @RequestBody Participacao participacao) {
-        Participacao novaParticipacao = reuniaoService.adicionarParticipacao(id, participacao);
-        return ResponseEntity.ok(novaParticipacao);
+    public ResponseEntity<ParticipacaoResponseDTO> adicionarParticipacao(
+            @PathVariable Long id,
+            @Valid @RequestBody ParticipacaoRequestDTO dto
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reuniaoService.adicionarParticipacao(id, dto));
     }
 
-    // 4. Endpoint que o frontend vai chamar para fechar a reunião e gerar a ata (O Grande Final!)
     @PutMapping("/{id}/finalizar")
-    public ResponseEntity<Reuniao> finalizarReuniao(@PathVariable Long id) {
-        try {
-            Reuniao reuniaoFinalizada = reuniaoService.finalizarReuniao(id);
-            return ResponseEntity.ok(reuniaoFinalizada);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<ReuniaoResponseDTO> finalizarReuniao(@PathVariable Long id) {
+        return ResponseEntity.ok(reuniaoService.finalizarReuniao(id));
     }
-    // 5. Endpoint para o frontend consultar a lista de reuniões
+
     @GetMapping
-    public ResponseEntity<List<Reuniao>> listarReunioes() {
-        List<Reuniao> lista = reuniaoService.listarTodasReunioes();
-        return ResponseEntity.ok(lista);
+    public ResponseEntity<List<ReuniaoResponseDTO>> listarReunioes() {
+        return ResponseEntity.ok(reuniaoService.listarTodasReunioes());
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<ReuniaoResponseDTO> buscarReuniao(@PathVariable Long id) {
+        return ResponseEntity.ok(reuniaoService.buscarPorId(id));
+    }
+
+    @GetMapping("/{id}/pautas")
+    public ResponseEntity<List<PautaResponseDTO>> listarPautas(@PathVariable Long id) {
+        return ResponseEntity.ok(reuniaoService.listarPautas(id));
+    }
+
+    @GetMapping("/{id}/participacoes")
+    public ResponseEntity<List<ParticipacaoResponseDTO>> listarParticipacoes(@PathVariable Long id) {
+        return ResponseEntity.ok(reuniaoService.listarParticipacoes(id));
     }
 }
